@@ -1,0 +1,609 @@
+# ============================================================
+# QUANT RESEARCH AUTOMATION — LEVEL 9
+# ============================================================
+#
+# PURPOSE:
+#
+# This level prepares our research system for Kaggle.
+#
+# We deliberately separate:
+#
+# 1. Research
+# 2. Experiment storage
+# 3. Kaggle package preparation
+# 4. Kaggle API connection
+#
+# This prevents a Kaggle problem from destroying a successful
+# research experiment.
+#
+#
+# CURRENT ARCHITECTURE:
+#
+# GitHub
+#    ↓
+# GitHub Actions
+#    ↓
+# Python
+#    ↓
+# Experiment
+#    ↓
+# EXP-XXXX
+#    ↓
+# CSV / JSON / TXT
+#    ↓
+# Kaggle package
+#    ↓
+# GitHub Artifact
+#
+#
+# NEXT:
+#
+# Level 10 → AI analysis
+# Level 11 → AI correction
+# Level 12 → stronger automation
+# Level 13 → Machine Learning
+# Level 16 → Alpaca API
+#
+# ============================================================
+
+
+name: Quant Research Test
+
+
+# ============================================================
+# WORKFLOW TRIGGERS
+# ============================================================
+
+on:
+
+  push:
+
+  workflow_dispatch:
+
+    inputs:
+
+      force_rerun:
+
+        description: "Run even if parameters.json has not changed"
+
+        required: false
+
+        type: boolean
+
+        default: false
+
+
+# ============================================================
+# PERMISSIONS
+# ============================================================
+
+permissions:
+
+  contents: write
+
+
+# ============================================================
+# PREVENT SIMULTANEOUS WRITES
+# ============================================================
+
+concurrency:
+
+  group: quant-research-experiments
+
+  cancel-in-progress: false
+
+
+# ============================================================
+# JOB
+# ============================================================
+
+jobs:
+
+  run-python:
+
+    runs-on: ubuntu-latest
+
+
+    steps:
+
+
+      # ======================================================
+      # STEP 1
+      # DOWNLOAD REPOSITORY
+      # ======================================================
+
+      - name: Step 1 - Get repository
+
+        uses: actions/checkout@v5
+
+
+      # ======================================================
+      # STEP 2
+      # SET UP PYTHON
+      # ======================================================
+
+      - name: Step 2 - Setup Python
+
+        uses: actions/setup-python@v6
+
+        with:
+
+          python-version: "3.12"
+
+
+      # ======================================================
+      # STEP 3
+      # RUN EXPERIMENT
+      # ======================================================
+
+      - name: Step 3 - Run research experiment
+
+        env:
+
+          FORCE_RERUN: ${{ github.event.inputs.force_rerun || 'false' }}
+
+        run: |
+
+          echo "=============================================="
+
+          echo "RUNNING QUANT RESEARCH EXPERIMENT"
+
+          echo "=============================================="
+
+          echo ""
+
+          python hello.py
+
+
+      # ======================================================
+      # STEP 4
+      # VERIFY EXPERIMENT
+      # ======================================================
+
+      - name: Step 4 - Verify experiment output
+
+        run: |
+
+          echo "=============================================="
+
+          echo "VERIFYING EXPERIMENT OUTPUT"
+
+          echo "=============================================="
+
+          echo ""
+
+
+          if [ ! -d "experiments" ]; then
+
+            echo "ERROR: experiments directory does not exist."
+
+            exit 1
+
+          fi
+
+
+          echo "Experiments directory exists."
+
+          echo ""
+
+          echo "Files currently inside experiments:"
+
+          find experiments -type f -print
+
+
+          echo ""
+
+          echo "Experiment verification successful."
+
+
+      # ======================================================
+      # STEP 5
+      # DISPLAY LEADERBOARD
+      # ======================================================
+
+      - name: Step 5 - Show leaderboard
+
+        run: |
+
+          echo "=============================================="
+
+          echo "CURRENT LEADERBOARD"
+
+          echo "=============================================="
+
+          echo ""
+
+
+          if [ -f leaderboard.csv ]; then
+
+            cat leaderboard.csv
+
+          else
+
+            echo "WARNING: leaderboard.csv does not exist."
+
+          fi
+
+
+      # ======================================================
+      # STEP 6
+      # SAVE EXPERIMENT ARTIFACT
+      # ======================================================
+
+      - name: Step 6 - Save experiment archive
+
+        uses: actions/upload-artifact@v4
+
+        with:
+
+          name: experiment-history-${{ github.run_id }}
+
+          path: |
+
+            experiments/
+
+            leaderboard.csv
+
+
+      # ======================================================
+      # STEP 7
+      # INSTALL KAGGLE CLI
+      # ======================================================
+      #
+      # We install the official Kaggle CLI.
+      #
+      # We do NOT yet require authentication.
+      #
+      # This isolates installation from authentication.
+      #
+      # ======================================================
+
+      - name: Step 7 - Install Kaggle CLI
+
+        run: |
+
+          echo "=============================================="
+
+          echo "INSTALLING KAGGLE CLI"
+
+          echo "=============================================="
+
+          echo ""
+
+
+          python -m pip install --upgrade pip
+
+
+          pip install kaggle
+
+
+          echo ""
+
+          echo "Kaggle CLI installed."
+
+
+          echo ""
+
+          echo "Kaggle version:"
+
+          kaggle --version
+
+
+      # ======================================================
+      # STEP 8
+      # PREPARE KAGGLE DIRECTORY
+      # ======================================================
+      #
+      # We create a clean package that can later be sent to
+      # Kaggle.
+      #
+      # ======================================================
+
+      - name: Step 8 - Prepare Kaggle research package
+
+        run: |
+
+          echo "=============================================="
+
+          echo "PREPARING KAGGLE RESEARCH PACKAGE"
+
+          echo "=============================================="
+
+          echo ""
+
+
+          rm -rf kaggle_upload
+
+
+          mkdir -p kaggle_upload
+
+
+          echo "Copying experiments..."
+
+
+          if [ -d "experiments" ]; then
+
+            cp -r experiments/. kaggle_upload/
+
+          fi
+
+
+          echo ""
+
+          echo "Copying leaderboard..."
+
+
+          if [ -f leaderboard.csv ]; then
+
+            cp leaderboard.csv kaggle_upload/
+
+          fi
+
+
+          echo ""
+
+          echo "Copying parameters..."
+
+
+          if [ -f parameters.json ]; then
+
+            cp parameters.json kaggle_upload/
+
+          fi
+
+
+          echo ""
+
+          echo "Kaggle package contents:"
+
+          echo "----------------------------------------------"
+
+
+          find kaggle_upload -type f -print
+
+
+          echo "----------------------------------------------"
+
+
+          echo ""
+
+          echo "Kaggle package prepared successfully."
+
+
+      # ======================================================
+      # STEP 9
+      # VERIFY KAGGLE PACKAGE
+      # ======================================================
+
+      - name: Step 9 - Verify Kaggle package
+
+        run: |
+
+          echo "=============================================="
+
+          echo "VERIFYING KAGGLE PACKAGE"
+
+          echo "=============================================="
+
+          echo ""
+
+
+          if [ ! -d "kaggle_upload" ]; then
+
+            echo "ERROR: kaggle_upload directory does not exist."
+
+            exit 1
+
+          fi
+
+
+          file_count=$(find kaggle_upload -type f | wc -l)
+
+
+          echo "Files found: $file_count"
+
+
+          if [ "$file_count" -eq 0 ]; then
+
+            echo "ERROR: Kaggle package contains no files."
+
+            exit 1
+
+          fi
+
+
+          echo ""
+
+          echo "Kaggle package verification successful."
+
+
+      # ======================================================
+      # STEP 10
+      # SAVE KAGGLE PACKAGE AS ARTIFACT
+      # ======================================================
+      #
+      # This gives us a permanent downloadable copy from the
+      # GitHub Actions run.
+      #
+      # ======================================================
+
+      - name: Step 10 - Save Kaggle package
+
+        uses: actions/upload-artifact@v4
+
+        with:
+
+          name: kaggle-research-package-${{ github.run_id }}
+
+          path: kaggle_upload/
+
+
+      # ======================================================
+      # STEP 11
+      # CHECK WHETHER KAGGLE TOKEN EXISTS
+      # ======================================================
+      #
+      # IMPORTANT:
+      #
+      # This step DOES NOT fail if the secret is missing.
+      #
+      # That is intentional.
+      #
+      # We want Level 9 to remain useful while we establish
+      # the rest of the pipeline.
+      #
+      # ======================================================
+
+      - name: Step 11 - Check Kaggle credentials
+
+        env:
+
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+
+        run: |
+
+          echo "=============================================="
+
+          echo "KAGGLE CREDENTIAL CHECK"
+
+          echo "=============================================="
+
+          echo ""
+
+
+          if [ -z "$KAGGLE_API_TOKEN" ]; then
+
+            echo "Kaggle API token is NOT currently configured."
+
+            echo ""
+
+            echo "This is NOT a failure."
+
+            echo ""
+
+            echo "The GitHub → Python → Kaggle package pipeline"
+
+            echo "has already been completed."
+
+            echo ""
+
+            echo "When ready, add the GitHub repository secret:"
+
+            echo "KAGGLE_API_TOKEN"
+
+            echo ""
+
+            echo "Then this stage can be activated."
+
+
+          else
+
+            echo "Kaggle API token is present."
+
+            echo ""
+
+            echo "Kaggle authentication can be activated in"
+
+            echo "the next Kaggle connection stage."
+
+          fi
+
+
+      # ======================================================
+      # STEP 12
+      # COMMIT LEADERBOARD
+      # ======================================================
+
+      - name: Step 12 - Save experiment memory
+
+        run: |
+
+          echo "=============================================="
+
+          echo "SAVING EXPERIMENT MEMORY"
+
+          echo "=============================================="
+
+          echo ""
+
+
+          git config --global user.name "github-actions"
+
+          git config --global user.email "github-actions@github.com"
+
+
+          git add leaderboard.csv
+
+
+          git commit \
+            -m "Update experiment leaderboard (${{ github.run_id }})" \
+            || echo "No leaderboard changes to commit."
+
+
+          for attempt in 1 2 3 4 5
+
+          do
+
+            git pull --rebase origin "${GITHUB_REF_NAME}" \
+              && git push \
+              && break
+
+
+            echo ""
+
+            echo "Push attempt $attempt failed."
+
+            echo "Retrying..."
+
+
+            sleep $((RANDOM % 5 + 1))
+
+          done
+
+
+      # ======================================================
+      # STEP 13
+      # FINAL CONFIRMATION
+      # ======================================================
+
+      - name: Step 13 - Level 9 complete
+
+        run: |
+
+          echo ""
+
+          echo "======================================================"
+
+          echo "LEVEL 9 COMPLETED"
+
+          echo "======================================================"
+
+          echo ""
+
+          echo "Repository:              SUCCESS"
+
+          echo "Python:                  SUCCESS"
+
+          echo "Experiment:              SUCCESS"
+
+          echo "Experiment verification: SUCCESS"
+
+          echo "GitHub artifact:         SUCCESS"
+
+          echo "Kaggle CLI:              INSTALLED"
+
+          echo "Kaggle package:          PREPARED"
+
+          echo ""
+
+          echo "The GitHub → Kaggle preparation pipeline works."
+
+          echo ""
+
+          echo "The actual Kaggle API upload will be introduced"
+
+          echo "as a separate controlled stage."
+
+          echo ""
+
+          echo "======================================================"
