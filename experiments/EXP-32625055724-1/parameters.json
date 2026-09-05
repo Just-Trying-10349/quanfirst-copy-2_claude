@@ -1,0 +1,5 @@
+{
+    "strategy_name": "Simple Return Experiment",
+    "starting_capital": 10000,
+    "strategy_return": 0.10
+}
