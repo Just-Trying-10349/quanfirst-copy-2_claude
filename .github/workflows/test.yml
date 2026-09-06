@@ -1,21 +1,10 @@
 # ============================================================
-# QUANT RESEARCH AUTOMATION — LEVEL 9
+# QUANT RESEARCH AUTOMATION — LEVEL 9.5
 # ============================================================
 #
 # PURPOSE:
 #
-# This level prepares our research system for Kaggle.
-#
-# We deliberately separate:
-#
-# 1. Research
-# 2. Experiment storage
-# 3. Kaggle package preparation
-# 4. Kaggle API connection
-#
-# This prevents a Kaggle problem from destroying a successful
-# research experiment.
-#
+# This level activates the real Kaggle connection.
 #
 # CURRENT ARCHITECTURE:
 #
@@ -23,36 +12,27 @@
 #    ↓
 # GitHub Actions
 #    ↓
-# Python
+# Python (hello.py)
 #    ↓
 # Experiment
 #    ↓
-# EXP-XXXX
+# Kaggle API push
 #    ↓
-# CSV / JSON / TXT
+# Kaggle executes level9_kaggle.py
 #    ↓
-# Kaggle package
+# GitHub Actions pulls the result back
 #    ↓
 # GitHub Artifact
-#
 #
 # NEXT:
 #
 # Level 10 → AI analysis
-# Level 11 → AI correction
-# Level 12 → stronger automation
-# Level 13 → Machine Learning
-# Level 16 → Alpaca API
 #
 # ============================================================
 
 
 name: Quant Research Test
 
-
-# ============================================================
-# WORKFLOW TRIGGERS
-# ============================================================
 
 on:
 
@@ -73,18 +53,10 @@ on:
         default: false
 
 
-# ============================================================
-# PERMISSIONS
-# ============================================================
-
 permissions:
 
   contents: write
 
-
-# ============================================================
-# PREVENT SIMULTANEOUS WRITES
-# ============================================================
 
 concurrency:
 
@@ -92,10 +64,6 @@ concurrency:
 
   cancel-in-progress: false
 
-
-# ============================================================
-# JOB
-# ============================================================
 
 jobs:
 
@@ -107,20 +75,10 @@ jobs:
     steps:
 
 
-      # ======================================================
-      # STEP 1
-      # DOWNLOAD REPOSITORY
-      # ======================================================
-
       - name: Step 1 - Get repository
 
         uses: actions/checkout@v5
 
-
-      # ======================================================
-      # STEP 2
-      # SET UP PYTHON
-      # ======================================================
 
       - name: Step 2 - Setup Python
 
@@ -130,11 +88,6 @@ jobs:
 
           python-version: "3.12"
 
-
-      # ======================================================
-      # STEP 3
-      # RUN EXPERIMENT
-      # ======================================================
 
       - name: Step 3 - Run research experiment
 
@@ -154,11 +107,6 @@ jobs:
 
           python hello.py
 
-
-      # ======================================================
-      # STEP 4
-      # VERIFY EXPERIMENT
-      # ======================================================
 
       - name: Step 4 - Verify experiment output
 
@@ -196,11 +144,6 @@ jobs:
           echo "Experiment verification successful."
 
 
-      # ======================================================
-      # STEP 5
-      # DISPLAY LEADERBOARD
-      # ======================================================
-
       - name: Step 5 - Show leaderboard
 
         run: |
@@ -225,11 +168,6 @@ jobs:
           fi
 
 
-      # ======================================================
-      # STEP 6
-      # SAVE EXPERIMENT ARTIFACT
-      # ======================================================
-
       - name: Step 6 - Save experiment archive
 
         uses: actions/upload-artifact@v4
@@ -244,19 +182,6 @@ jobs:
 
             leaderboard.csv
 
-
-      # ======================================================
-      # STEP 7
-      # INSTALL KAGGLE CLI
-      # ======================================================
-      #
-      # We install the official Kaggle CLI.
-      #
-      # We do NOT yet require authentication.
-      #
-      # This isolates installation from authentication.
-      #
-      # ======================================================
 
       - name: Step 7 - Install Kaggle CLI
 
@@ -289,16 +214,6 @@ jobs:
           kaggle --version
 
 
-      # ======================================================
-      # STEP 8
-      # PREPARE KAGGLE DIRECTORY
-      # ======================================================
-      #
-      # We create a clean package that can later be sent to
-      # Kaggle.
-      #
-      # ======================================================
-
       - name: Step 8 - Prepare Kaggle research package
 
         run: |
@@ -318,19 +233,11 @@ jobs:
           mkdir -p kaggle_upload
 
 
-          echo "Copying experiments..."
-
-
           if [ -d "experiments" ]; then
 
             cp -r experiments/. kaggle_upload/
 
           fi
-
-
-          echo ""
-
-          echo "Copying leaderboard..."
 
 
           if [ -f leaderboard.csv ]; then
@@ -340,11 +247,6 @@ jobs:
           fi
 
 
-          echo ""
-
-          echo "Copying parameters..."
-
-
           if [ -f parameters.json ]; then
 
             cp parameters.json kaggle_upload/
@@ -352,28 +254,10 @@ jobs:
           fi
 
 
-          echo ""
-
           echo "Kaggle package contents:"
-
-          echo "----------------------------------------------"
-
 
           find kaggle_upload -type f -print
 
-
-          echo "----------------------------------------------"
-
-
-          echo ""
-
-          echo "Kaggle package prepared successfully."
-
-
-      # ======================================================
-      # STEP 9
-      # VERIFY KAGGLE PACKAGE
-      # ======================================================
 
       - name: Step 9 - Verify Kaggle package
 
@@ -412,20 +296,8 @@ jobs:
           fi
 
 
-          echo ""
-
           echo "Kaggle package verification successful."
 
-
-      # ======================================================
-      # STEP 10
-      # SAVE KAGGLE PACKAGE AS ARTIFACT
-      # ======================================================
-      #
-      # This gives us a permanent downloadable copy from the
-      # GitHub Actions run.
-      #
-      # ======================================================
 
       - name: Step 10 - Save Kaggle package
 
@@ -440,21 +312,15 @@ jobs:
 
       # ======================================================
       # STEP 11
-      # CHECK WHETHER KAGGLE TOKEN EXISTS
+      # CONFIGURE KAGGLE CREDENTIALS
       # ======================================================
       #
-      # IMPORTANT:
-      #
-      # This step DOES NOT fail if the secret is missing.
-      #
-      # That is intentional.
-      #
-      # We want Level 9 to remain useful while we establish
-      # the rest of the pipeline.
+      # KAGGLE_API_TOKEN holds the full contents of the
+      # kaggle.json file downloaded from Kaggle's API settings.
       #
       # ======================================================
 
-      - name: Step 11 - Check Kaggle credentials
+      - name: Step 11 - Configure Kaggle credentials
 
         env:
 
@@ -464,7 +330,7 @@ jobs:
 
           echo "=============================================="
 
-          echo "KAGGLE CREDENTIAL CHECK"
+          echo "CONFIGURING KAGGLE CREDENTIALS"
 
           echo "=============================================="
 
@@ -473,48 +339,195 @@ jobs:
 
           if [ -z "$KAGGLE_API_TOKEN" ]; then
 
-            echo "Kaggle API token is NOT currently configured."
+            echo "ERROR: KAGGLE_API_TOKEN secret is not set."
 
-            echo ""
-
-            echo "This is NOT a failure."
-
-            echo ""
-
-            echo "The GitHub → Python → Kaggle package pipeline"
-
-            echo "has already been completed."
-
-            echo ""
-
-            echo "When ready, add the GitHub repository secret:"
-
-            echo "KAGGLE_API_TOKEN"
-
-            echo ""
-
-            echo "Then this stage can be activated."
-
-
-          else
-
-            echo "Kaggle API token is present."
-
-            echo ""
-
-            echo "Kaggle authentication can be activated in"
-
-            echo "the next Kaggle connection stage."
+            exit 1
 
           fi
 
 
+          mkdir -p ~/.kaggle
+
+          echo "$KAGGLE_API_TOKEN" > ~/.kaggle/kaggle.json
+
+          chmod 600 ~/.kaggle/kaggle.json
+
+
+          echo "Kaggle credentials configured."
+
+
       # ======================================================
       # STEP 12
-      # COMMIT LEADERBOARD
+      # SEND CODE TO KAGGLE
       # ======================================================
 
-      - name: Step 12 - Save experiment memory
+      - name: Step 12 - Send code to Kaggle
+
+        run: |
+
+          echo "=============================================="
+
+          echo "PUSHING CODE TO KAGGLE"
+
+          echo "=============================================="
+
+          echo ""
+
+
+          kaggle kernels push -p kaggle/
+
+
+          echo ""
+
+          echo "Code sent to Kaggle. Kaggle will now run it."
+
+
+      # ======================================================
+      # STEP 13
+      # WAIT FOR KAGGLE TO FINISH RUNNING IT
+      # ======================================================
+
+      - name: Step 13 - Wait for Kaggle execution
+
+        run: |
+
+          echo "=============================================="
+
+          echo "WAITING FOR KAGGLE EXECUTION"
+
+          echo "=============================================="
+
+          echo ""
+
+
+          KERNEL="Just-Trying-10349/quanfirst-level9"
+
+
+          for attempt in $(seq 1 30)
+
+          do
+
+            STATUS=$(kaggle kernels status "$KERNEL")
+
+            echo "$STATUS"
+
+
+            if echo "$STATUS" | grep -q "complete"; then
+
+              echo ""
+
+              echo "Kaggle finished running the code."
+
+              break
+
+            fi
+
+
+            if echo "$STATUS" | grep -q "error"; then
+
+              echo ""
+
+              echo "ERROR: Kaggle run failed."
+
+              exit 1
+
+            fi
+
+
+            sleep 10
+
+          done
+
+
+      # ======================================================
+      # STEP 14
+      # RETRIEVE KAGGLE'S OUTPUT
+      # ======================================================
+
+      - name: Step 14 - Retrieve Kaggle output
+
+        run: |
+
+          echo "=============================================="
+
+          echo "RETRIEVING KAGGLE OUTPUT"
+
+          echo "=============================================="
+
+          echo ""
+
+
+          rm -rf kaggle_result
+
+
+          kaggle kernels output "Just-Trying-10349/quanfirst-level9" -p kaggle_result/
+
+
+          echo ""
+
+          echo "Files returned by Kaggle:"
+
+          find kaggle_result -type f -print
+
+
+      # ======================================================
+      # STEP 15
+      # VERIFY THE RESULT ACTUALLY CAME FROM KAGGLE
+      # ======================================================
+
+      - name: Step 15 - Verify Kaggle result
+
+        run: |
+
+          echo "=============================================="
+
+          echo "VERIFYING KAGGLE RESULT"
+
+          echo "=============================================="
+
+          echo ""
+
+
+          if [ -f kaggle_result/kaggle_result.json ]; then
+
+            echo "SUCCESS: this result was produced by Kaggle."
+
+            echo ""
+
+            cat kaggle_result/kaggle_result.json
+
+          else
+
+            echo "ERROR: kaggle_result.json was not returned by Kaggle."
+
+            exit 1
+
+          fi
+
+
+          echo ""
+
+          echo "Kaggle execution log:"
+
+          echo "----------------------------------------------"
+
+          cat kaggle_result/*.log 2>/dev/null || echo "(no log file returned)"
+
+          echo "----------------------------------------------"
+
+
+      - name: Step 16 - Save Kaggle result
+
+        uses: actions/upload-artifact@v4
+
+        with:
+
+          name: kaggle-execution-result-${{ github.run_id }}
+
+          path: kaggle_result/
+
+
+      - name: Step 17 - Save experiment memory
 
         run: |
 
@@ -561,12 +574,7 @@ jobs:
           done
 
 
-      # ======================================================
-      # STEP 13
-      # FINAL CONFIRMATION
-      # ======================================================
-
-      - name: Step 13 - Level 9 complete
+      - name: Step 18 - Level 9.5 complete
 
         run: |
 
@@ -574,35 +582,15 @@ jobs:
 
           echo "======================================================"
 
-          echo "LEVEL 9 COMPLETED"
+          echo "LEVEL 9.5 COMPLETED"
 
           echo "======================================================"
 
           echo ""
 
-          echo "Repository:              SUCCESS"
+          echo "GitHub sent the code. Kaggle imported its own"
 
-          echo "Python:                  SUCCESS"
-
-          echo "Experiment:              SUCCESS"
-
-          echo "Experiment verification: SUCCESS"
-
-          echo "GitHub artifact:         SUCCESS"
-
-          echo "Kaggle CLI:              INSTALLED"
-
-          echo "Kaggle package:          PREPARED"
-
-          echo ""
-
-          echo "The GitHub → Kaggle preparation pipeline works."
-
-          echo ""
-
-          echo "The actual Kaggle API upload will be introduced"
-
-          echo "as a separate controlled stage."
+          echo "libraries, ran it, and returned the real result."
 
           echo ""
 
