@@ -203,6 +203,34 @@ print(result_file)
 
 
 # ------------------------------------------------------------
+# STEP 5B
+# ALSO WRITE A FIXED-NAME COPY
+# ------------------------------------------------------------
+#
+# GitHub Actions needs a predictable filename to pull back —
+# it can't guess the return-based name in advance.
+#
+# ------------------------------------------------------------
+
+fixed_result_file = Path("kaggle_result.json")
+
+with fixed_result_file.open(
+    "w",
+    encoding="utf-8"
+) as file:
+
+    json.dump(
+        result,
+        file,
+        indent=4
+    )
+
+print()
+print("FIXED-NAME RESULT FILE CREATED:")
+print(fixed_result_file)
+
+
+# ------------------------------------------------------------
 # FINISH
 # ------------------------------------------------------------
 
